@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>untuk sayangku</title>
+    <meta name="description" content="Hadiah spesial dan romantis - untuk sayangku" />
+    <meta property="og:title" content="untuk sayangku" />
+    <meta property="og:description" content="Website kejutan ulang tahun yang penuh cinta dan kenangan." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <!-- ========== 100% Reliable Audio Trigger ========== -->
+    <audio id="bgMusic" src="musik.mp3" loop preload="auto" playsinline style="display:none;"></audio>
+    <script>
+        function startMusic() {
+            var audio = document.getElementById('bgMusic');
+            var overlay = document.getElementById('welcome-overlay');
+            var sub = document.getElementById('musicSub');
+
+            // Web Audio API context fallback for absolute reliability
+            var AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                var context = new AudioContext();
+            }
+
+            if (audio) {
+                audio.muted = false;
+                audio.volume = 1.0;
+
+                var forcePlay = function () {
+                    if (!audio.paused) return;
+                    audio.play().then(function () {
+                        if (sub) sub.textContent = '♪ Sedang diputar';
+                    }).catch(function (e) {
+                        if (sub) sub.textContent = '♪ Klik layar untuk musik';
+                    });
+                };
+
+                try {
+                    if (context) context.resume();
+                    audio.load();
+                    forcePlay();
+                } catch (e) { }
+
+                var interactionTrigger = function () {
+                    if (audio.paused) {
+                        if (context) context.resume();
+                        audio.play().then(function () {
+                            if (sub) sub.textContent = '♪ Sedang diputar';
+                            document.removeEventListener('click', interactionTrigger);
+                        });
+                    } else {
+                        document.removeEventListener('click', interactionTrigger);
+                    }
+                };
+                document.addEventListener('click', interactionTrigger);
+            }
+
+            if (overlay) {
+                overlay.style.opacity = '0';
+                overlay.style.pointerEvents = 'none';
+                setTimeout(function () { overlay.style.display = 'none'; }, 850);
+            }
+        }
+    </script>
+
+
+    <!-- ========== PARTICLES CANVAS ========== -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- ========== FLOATING HEARTS ========== -->
+    <div class="floating-hearts" id="floating-hearts"></div>
+
+    <!-- ========== WELCOME / CLICK-TO-START OVERLAY ========== -->
+    <div id="welcome-overlay" class="welcome-overlay">
+        <div class="welcome-content">
+            <div class="welcome-emoji">🎁</div>
+            <div class="welcome-title">Sebuah kejutan untukmu</div>
+            <div class="welcome-sub">Klik tombol di bawah untuk membuka hadiah spesialmu</div>
+            <button class="welcome-btn" onclick="startMusic()">Buka Kejutan 🌹</button>
+            <div class="welcome-pulse"></div>
+        </div>
+    </div>
+
+    <!-- ========== FIREWORKS OVERLAY ========== -->
+    <div id="fw-overlay" class="fw-overlay">
+        <canvas id="fw-canvas" class="fw-canvas"></canvas>
+        <div class="fw-text-wrap" id="fw-text-wrap">
+            <div class="fw-text-line1">🎂 Happy Birthday 🎂</div>
+            <div class="fw-text-line2">Sayangg Gemeshh</div>
+            <div class="fw-text-hearts">✨ 🎆 ✨</div>
+            <button class="fw-close-btn" onclick="closeFwOverlay()">✕ Tutup</button>
+        </div>
+    </div>
+
+    <!-- ========== HERO SECTION ========== -->
+    <section class="hero" id="home">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-badge">🌹 Untuk kamu yang Terindah 🌹</div>
+            <h1 class="hero-title">
+                <span class="line-selamat">Selamat</span>
+                <span class="line-ulang-tahun">Ulang Tahun sayangkuuu</span>
+            </h1>
+
+            <h2 class="hero-name">Risma Galuh Tryasa Yoshinta Rizky</h2>
+            <p class="hero-subtitle">Semoga hari ulang tahun kamu ke 18 ini semakin cantik, baik &amp; dan selalu
+                bahagia, sebahagia waktu kita bersama.</p>
+            <div class="scroll-indicator">
+                <span>Scroll ke bawah</span>
+                <div class="scroll-arrow">↓</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== COUNTDOWN SECTION ========== -->
+    <section class="countdown-section" id="countdown">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">🎂 Hari Spesialmu</div>
+                <h2 class="section-title">Tanggal <span class="gradient-text">Ulang Tahun</span></h2>
+            </div>
+            <div class="birthday-date-display">
+                <div class="date-card">
+                    <span class="date-day">18</span>
+                    <span class="date-month">Februari</span>
+                    <span class="date-year">2008</span>
+                </div>
+                <div class="age-badge">
+                    <span class="age-number" id="ageNumber">18</span>
+                    <span class="age-label">Tahun Penuh kebaikan dan kebahagiaan</span>
+                </div>
+            </div>
+            <div class="countdown-grid" id="countdownGrid">
+                <div class="countdown-box">
+                    <span class="count-num" id="days">000</span>
+                    <span class="count-label">Hari</span>
+                </div>
+                <div class="countdown-box">
+                    <span class="count-num" id="hours">00</span>
+                    <span class="count-label">Jam</span>
+                </div>
+                <div class="countdown-box">
+                    <span class="count-num" id="minutes">00</span>
+                    <span class="count-label">Menit</span>
+                </div>
+                <div class="countdown-box">
+                    <span class="count-num" id="seconds">00</span>
+                    <span class="count-label">Detik</span>
+                </div>
+            </div>
+            <p class="countdown-label">ini nunjukin waktu ulang tahun di waktu mendatang ketika nnti kamu usia 19
+                sayangg akuu love uu &lt;3 🎉</p>
+        </div>
+    </section>
+
+    <!-- ========== LOVE ANNIVERSARY ========== -->
+    <section class="anniversary-section" id="anniversary">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">💍 Kita Bersama</div>
+                <h2 class="section-title">Hari <span class="gradient-text">Jadian Kita</span></h2>
+            </div>
+            <div class="anniversary-card">
+                <div class="anniversary-icon">👩‍❤️‍👨</div>
+                <div class="anniversary-date-text">21 September 2025</div>
+                <p class="anniversary-quote">"Semenjak hari itu, setiap harinya menjadi lebih bahagia dan lebih berwarna
+                    bersama kamuu gemeshh acuu"</p>
+                <div class="love-counter">
+                    <div class="love-stat">
+                        <span class="love-num" id="loveYears">0</span>
+                        <span class="love-label">Tahun</span>
+                    </div>
+                    <div class="love-stat">
+                        <span class="love-num" id="loveMonths">0</span>
+                        <span class="love-label">Bulan</span>
+                    </div>
+                    <div class="love-stat">
+                        <span class="love-num" id="loveDays">0</span>
+                        <span class="love-label">Hari</span>
+                    </div>
+                </div>
+                <p class="love-caption">Kita selalu bersama dalam susah dan senang, harapan aku semoga kita berbuah
+                    hasil baik yah sayangg akuu ❤️</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== SWEET MESSAGES ========== -->
+    <section class="messages-section" id="messages">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">💌 Dari Hatiku</div>
+                <h2 class="section-title">sedikit pesan <span class="gradient-text">Untukmu</span></h2>
+            </div>
+            <div class="messages-grid">
+                <div class="message-card card-pink">
+                    <div class="msg-icon">🌸</div>
+                    <p class="msg-text">Kamu adalah alasan kenapa aku masih bisa meneruskan perjalanan hidup aku dan
+                        mulai berpikir untuk serius menatap masa depanku, tawamu adalah hal yang selalu aku nnti kan di
+                        setiap harinya sayang.</p>
+                </div>
+                <div class="message-card card-rose">
+                    <div class="msg-icon">🌹</div>
+                    <p class="msg-text">Di hari ulang tahunmu ini, aku ingin kamu tahu bahwa kamu adalah anugerah
+                        paling terindah yang pernah Tuhan berikan dalam hidupku.</p>
+                </div>
+                <div class="message-card card-lavender">
+                    <div class="msg-icon">💜</div>
+                    <p class="msg-text">Setiap tawa, setiap cerita, setiap momen bersamamu — semuanya menjadi kenangan
+                        yang akan selalu aku jaga di dalam hati dan tidak akann pernah terlupakan.</p>
+                </div>
+                <div class="message-card card-gold">
+                    <div class="msg-icon">✨</div>
+                    <p class="msg-text">Semoga di usia yang baru ini, kamu semakin cantik. semakin gemesinnn. semakin
+                        lucuu serta makin bersikap dewasa. Impianmu mulai terwujud satu persatu,
+                        kebahagiaan selalu menemanimu, dan cinta serta rasa sayang acuu selalu ada untukmu.</p>
+                </div>
+                <div class="message-card card-blush">
+                    <div class="msg-icon">🫶</div>
+                    <p class="msg-text">Kamu bukan hanya kekasihku, kamu adalah sahabat terbaikku, tempat pulangku, dan
+                        sumber kekuatanku.</p>
+                </div>
+                <div class="message-card card-mint">
+                    <div class="msg-icon">🌿</div>
+                    <p class="msg-text">Happy Birthday, Sayanggg acuuu. Terima kasih sudah memilihku, mencintaiku apa
+                        adanya,
+                        dan membuat hidupku jauh lebih berarti.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== LOVE STORY / TIMELINE ========== -->
+    <section class="timeline-section" id="lovestory">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">📖 Cerita Kita</div>
+                <h2 class="section-title">Perjalanan <span class="gradient-text">Cinta Kita</span></h2>
+            </div>
+            <div class="timeline">
+                <div class="timeline-item left">
+                    <div class="timeline-dot">💫</div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">Juli 2025</div>
+                        <h3 class="timeline-title">Awal Kita saling mencuri waktu untuk saling menatap</h3>
+                        <p class="timeline-desc">ini merupakan hari yang paling aku ingat sayangg — saat kita hanya
+                            dapat saling menatap tanpa berani memulai pembicaraan.</p>
+                    </div>
+                </div>
+                <div class="timeline-item right">
+                    <div class="timeline-dot">🌸</div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">September 2025</div>
+                        <h3 class="timeline-title">Kenangan Pertama</h3>
+                        <p class="timeline-desc">Aku lupa tanggal pasti ketika kamu memberikan aku secangkir kopi kita
+                            mulai saling berani berkomunikasi — dengan niat awal hanya saling membalas kebaikan.
+                        </p>
+                    </div>
+                </div>
+                <div class="timeline-item left">
+                    <div class="timeline-dot">🌅</div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">21 September 2025</div>
+                        <h3 class="timeline-title">Aku memberanikan diri untuk memintamu menjadi pacarku</h3>
+                        <p class="timeline-desc">Di Momen itu jujur aku sedikit takut kalau perasaan aku berujung hal
+                            pahit hahaha, namun ketika kamu bicara "aku mau jadi pacar kamu dengan syarat ini cinta
+                            terakhir kita untuk selamanya" — pada saat itu aku sangat bahagia.</p>
+                    </div>
+                </div>
+                <div class="timeline-item right">
+                    <div class="timeline-dot">🎉</div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">Oktober 2025</div>
+                        <h3 class="timeline-title">aku mengikat dirimu dengan sebuah cincin sederhana dan sedikit
+                            pertualangan kecil</h3>
+                        <p class="timeline-desc">Pada saat ini kita udah sama-sama menjalani hidup yang kemana harus
+                            selalu berdua, tidak ada hal yang aku ragukan terhadap dirimu sayangg, aku selalu berpikir
+                            ketika kamu suka sama pemberian dan usaha yang aku kasih maka nanti nya itu akan berbuah hal
+                            yang paling baik untuk aku dan kamu.</p>
+                    </div>
+                </div>
+                <div class="timeline-item left">
+                    <div class="timeline-dot">💌</div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">November 2025</div>
+                        <h3 class="timeline-title">Menghadapi Rintangan Bersama</h3>
+                        <p class="timeline-desc">awal kita dihadapi dengan LDR, tapi di bulan ini aku sadar bahwa setiap
+                            kali rasa kangen berjumpa
+                            justru membuat ikatan kita semakin kuat dan tak tergantikan, karena kita sama-sama saling
+                            menanti momen untuk bertemu, aku inget waktu itu kita LDR karena kamu ada urusan yang harus
+                            di selesaikan disekolah.</p>
+                    </div>
+                </div>
+                <div class="timeline-item right">
+                    <div class="timeline-dot">🎁</div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">Desember 2025</div>
+                        <h3 class="timeline-title">Akhir Tahun yang tidak berjalan sesuai rencana kita</h3>
+                        <p class="timeline-desc">dengan niat awal kita untuk bertemu di penutup tahun 2025 itu gagal
+                            total karena aku dikhianatin sama temen aku ya sayangg hahaha, jujur aku merasa sangat
+                            menyesal karena omongan aku tidak bisa di pegang, namun aku sangat bahagia sekali karena
+                            yang awal nya aku kira hanya sendiri yang berusaha dihubungan ini ternyata itu salah besar.
+                            KITA SAMA-SAMA INGIN BERADU EFFORT. lucuu bangett yaa kitaa.</p>
+                    </div>
+                </div>
+                <div class="timeline-item left">
+                    <div class="timeline-dot">♾️</div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">2026 & Seterusnya</div>
+                        <h3 class="timeline-title">Masa Depan yang Kita tentukan</h3>
+                        <p class="timeline-desc">ditahun ini banyak sekali effort kamu untuk bertemu, kamu bener-bener
+                            wanita yang keliatan sangat sayangg sama akuu:(, makasih ya sayangg perhatian kamuu.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== PHOTO GALLERY ========== -->
+    <section class="gallery-section" id="gallery">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">📸 Kenangan Kita</div>
+                <h2 class="section-title">Galeri <span class="gradient-text">Foto</span></h2>
+                <p class="section-desc">Ganti foto-foto di bawah ini dengan foto kenangan kamu berdua 💕</p>
+            </div>
+            <div class="gallery-grid">
+                <div class="gallery-item gallery-large">
+                    <div class="photo-placeholder">
+                        <input type="file" class="photo-input" accept="image/*" id="photo1"
+                            onchange="loadPhoto(this, 'img1')" />
+                        <label for="photo1" class="photo-label">
+                            <img src="" alt="Foto 1" id="img1" class="gallery-img hidden" />
+                            <div class="placeholder-content" id="ph1">
+                                <span class="ph-icon">📸</span>
+                                <span class="ph-text">Klik untuk Upload Foto</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="photo-caption">Foto Favorit 💖</div>
+                </div>
+                <div class="gallery-item">
+                    <div class="photo-placeholder">
+                        <input type="file" class="photo-input" accept="image/*" id="photo2"
+                            onchange="loadPhoto(this, 'img2')" />
+                        <label for="photo2" class="photo-label">
+                            <img src="" alt="Foto 2" id="img2" class="gallery-img hidden" />
+                            <div class="placeholder-content" id="ph2">
+                                <span class="ph-icon">📸</span>
+                                <span class="ph-text">Upload Foto</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="photo-caption">Momen Bahagia ✨</div>
+                </div>
+                <div class="gallery-item">
+                    <div class="photo-placeholder">
+                        <input type="file" class="photo-input" accept="image/*" id="photo3"
+                            onchange="loadPhoto(this, 'img3')" />
+                        <label for="photo3" class="photo-label">
+                            <img src="" alt="Foto 3" id="img3" class="gallery-img hidden" />
+                            <div class="placeholder-content" id="ph3">
+                                <span class="ph-icon">📸</span>
+                                <span class="ph-text">Upload Foto</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="photo-caption">Bersama Selamanya 💍</div>
+                </div>
+                <div class="gallery-item">
+                    <div class="photo-placeholder">
+                        <input type="file" class="photo-input" accept="image/*" id="photo4"
+                            onchange="loadPhoto(this, 'img4')" />
+                        <label for="photo4" class="photo-label">
+                            <img src="" alt="Foto 4" id="img4" class="gallery-img hidden" />
+                            <div class="placeholder-content" id="ph4">
+                                <span class="ph-icon">📸</span>
+                                <span class="ph-text">Upload Foto</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="photo-caption">Cerita Kita 📖</div>
+                </div>
+                <div class="gallery-item">
+                    <div class="photo-placeholder">
+                        <input type="file" class="photo-input" accept="image/*" id="photo5"
+                            onchange="loadPhoto(this, 'img5')" />
+                        <label for="photo5" class="photo-label">
+                            <img src="" alt="Foto 5" id="img5" class="gallery-img hidden" />
+                            <div class="placeholder-content" id="ph5">
+                                <span class="ph-icon">📸</span>
+                                <span class="ph-text">Upload Foto</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="photo-caption">Senyummu 🌸</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== VIDEO SECTION ========== -->
+    <section class="video-section" id="video">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">🎬 Momen Bergerak</div>
+                <h2 class="section-title">Video <span class="gradient-text">Kenangan</span></h2>
+                <p class="section-desc">Upload video spesial kamu berdua di sini 🎥</p>
+            </div>
+            <div class="video-grid">
+                <div class="video-card main-video">
+                    <div class="video-placeholder" id="videoPlaceholder1">
+                        <input type="file" class="video-input" accept="video/*" id="vid1"
+                            onchange="loadVideo(this, 'videoEl1', 'videoPlaceholder1')" />
+                        <label for="vid1" class="video-upload-label">
+                            <div class="video-ph-content">
+                                <div class="video-ph-icon">🎬</div>
+                                <div class="video-ph-text">Upload Video Utama</div>
+                                <div class="video-ph-sub">Format: MP4, MOV, AVI</div>
+                            </div>
+                        </label>
+                        <video id="videoEl1" class="video-element hidden" controls></video>
+                    </div>
+                    <div class="video-caption">Video Spesial Kita 💕</div>
+                </div>
+                <div class="video-card">
+                    <div class="video-placeholder" id="videoPlaceholder2">
+                        <input type="file" class="video-input" accept="video/*" id="vid2"
+                            onchange="loadVideo(this, 'videoEl2', 'videoPlaceholder2')" />
+                        <label for="vid2" class="video-upload-label">
+                            <div class="video-ph-content">
+                                <div class="video-ph-icon">📽️</div>
+                                <div class="video-ph-text">Upload Video Kenangan</div>
+                                <div class="video-ph-sub">Format: MP4, MOV, AVI</div>
+                            </div>
+                        </label>
+                        <video id="videoEl2" class="video-element hidden" controls></video>
+                    </div>
+                    <div class="video-caption">Momen Tak Terlupakan ✨</div>
+                </div>
+                <div class="video-card">
+                    <div class="video-placeholder" id="videoPlaceholder3">
+                        <input type="file" class="video-input" accept="video/*" id="vid3"
+                            onchange="loadVideo(this, 'videoEl3', 'videoPlaceholder3')" />
+                        <label for="vid3" class="video-upload-label">
+                            <div class="video-ph-content">
+                                <div class="video-ph-icon">🎞️</div>
+                                <div class="video-ph-text">Upload Video Lainnya</div>
+                                <div class="video-ph-sub">Format: MP4, MOV, AVI</div>
+                            </div>
+                        </label>
+                        <video id="videoEl3" class="video-element hidden" controls></video>
+                    </div>
+                    <div class="video-caption">Kebahagiaan Kita 🌟</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== POEM / PUISI ========== -->
+    <section class="poem-section" id="poem">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">📜 Puisi Untukmu</div>
+                <h2 class="section-title">Sebuah <span class="gradient-text">Sajak Cinta</span></h2>
+            </div>
+            <div class="poem-card">
+                <div class="poem-decoration top-left">🌸</div>
+                <div class="poem-decoration top-right">🌹</div>
+                <div class="poem-decoration bottom-left">🌺</div>
+                <div class="poem-decoration bottom-right">💐</div>
+                <div class="poem-body">
+                    <p>Di antara jutaan bintang yang berkelip malam ini,</p>
+                    <p>Tak ada yang lebih terang dari matamu.</p>
+                    <p>&nbsp;</p>
+                    <p>Di antara jutaan bunga yang mekar di musim semi,</p>
+                    <p>Tak ada yang lebih indah dari senyummu.</p>
+                    <p>&nbsp;</p>
+                    <p>Di antara jutaan kata yang terucap di dunia ini,</p>
+                    <p>Tak ada yang lebih berarti dari "aku cintamu".</p>
+                    <p>&nbsp;</p>
+                    <p>Selamat ulang tahun, belahan jiwaku,</p>
+                    <p>Semoga hidupmu selalu seindah dirimu.</p>
+                </div>
+                <div class="poem-author">— Dengan sepenuh cinta, untukmu 💕 👩‍❤️‍👨</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CLOSING / WISH ========== -->
+    <!-- ========== SHARED MEMORIES SECTION ========== -->
+    <section class="shared-memories" id="collaborative-gallery">
+        <div class="section-container">
+            <div class="section-header">
+                <div class="section-tag">📸 Memori Bersama</div>
+                <h2 class="section-title">Tambahkan <span class="gradient-text">Kenangan Kita</span></h2>
+                <p class="section-desc">Klik tombol di bawah untuk menambahkan foto baru dari HP-mu!</p>
+            </div>
+
+            <div class="upload-area">
+                <label for="photoUpload" class="upload-btn">
+                    <span>➕ Tambah Foto Baru</span>
+                    <input type="file" id="photoUpload" accept="image/*" onchange="handlePhotoUpload(event)">
+                </label>
+            </div>
+
+            <div class="shared-gallery-grid" id="sharedGalleryGrid">
+                <!-- Foto yang diupload akan muncul di sini -->
+            </div>
+        </div>
+    </section>
+
+    <section class="closing-section" id="closing">
+        <div class="closing-overlay"></div>
+        <div class="section-container">
+            <div class="closing-content">
+                <div class="closing-emoji">💝</div>
+                <h2 class="closing-title">Happy Birthday!</h2>
+                <p class="closing-subtitle">Semoga panjang umur, sehat selalu, dan bahagia selamanya.</p>
+                <p class="closing-wish">Aku mencintaimu kemarin, hari ini, dan selamanya. 💕</p>
+                <div class="closing-signature">
+                    <div class="sig-line"></div>
+                    <span class="sig-text">Dari: Seseorang yang Mencintaimu Sepenuh Hati 💕 Risma</span>
+                    <div class="sig-line"></div>
+                </div>
+                <div class="closing-hearts">
+                    <span>💕</span><span>🌹</span><span>✨</span><span>🌸</span><span>💕</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+        <p>Made with <span class="footer-heart">❤️</span> especially for you</p>
+        <p class="footer-sub">© 2026 — Dengan cinta yang tulus dan tak terhingga 🌹</p>
+    </footer>
+
+    <!-- ========== MUSIC PLAYER CONTROLS ========== -->
+    <div class="music-player" id="musicPlayer">
+        <div class="music-icon" id="musicNoteIcon">🎵</div>
+        <div class="music-info">
+            <span class="music-title-scroll">Kota Ini Tak Sama Tanpamu &mdash; Nadhif Basamalah</span>
+            <span class="music-sub" id="musicSub">♪ Memuat...</span>
+        </div>
+        <div class="music-controls">
+            <button class="music-btn" id="playBtn" onclick="toggleMusic()" title="Play/Pause">▶</button>
+        </div>
+    </div>
+
+    <!-- ========== FIREWORKS BUTTON ========== -->
+    <button class="fireworks-btn" id="fireworksBtn" onclick="launchFireworks()"
+        title="Klik untuk kembang api!">🎆</button>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
