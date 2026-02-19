@@ -168,7 +168,56 @@
     sections.forEach(section => observer.observe(section));
 })();
 
-// ── PHOTO UPLOAD ─────────────────────────────────────────────
+// ── MUSIC PLAYER (Fixed: musik.mp3) ──────────────────────────
+function toggleMusic() {
+    var audio = document.getElementById('bgMusic');
+    var sub = document.getElementById('musicSub');
+    if (!audio) return;
+
+    if (audio.paused) {
+        audio.play().then(function () {
+            if (sub) sub.textContent = '♪ Sedang diputar';
+        }).catch(function () {
+            audio.load();
+            audio.play().catch(function () { });
+        });
+    } else {
+        audio.pause();
+        if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
+    }
+}
+
+function setMusicUI(playing) {
+    var btn = document.getElementById('playBtn');
+    var icon = document.getElementById('musicNoteIcon');
+    if (btn) btn.textContent = playing ? '⏸' : '▶';
+    if (icon) icon.style.animation = playing ? 'pulse 1.5s ease infinite' : 'none';
+}
+
+(function initMusicUI() {
+    var audio = document.getElementById('bgMusic');
+    var sub = document.getElementById('musicSub');
+    if (!audio) return;
+
+    audio.addEventListener('play', () => {
+        setMusicUI(true);
+        if (sub) sub.textContent = '♪ Sedang diputar';
+    });
+    audio.addEventListener('pause', () => {
+        setMusicUI(false);
+        if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
+    });
+    audio.addEventListener('error', () => {
+        if (sub) sub.textContent = '⚠️ Musik Error - Cek file musik.mp3';
+    });
+
+    if (!audio.paused) {
+        setMusicUI(true);
+        if (sub) sub.textContent = '♪ Sedang diputar';
+    }
+})();
+
+// ── PHOTO/VIDEO UPLOAD (Local Logic) ──────────────────────────
 function loadPhoto(input, imgId) {
     const file = input.files[0];
     if (!file) return;
@@ -178,76 +227,26 @@ function loadPhoto(input, imgId) {
         const img = document.getElementById(imgId);
         img.src = e.target.result;
         img.classList.remove('hidden');
-
         const num = imgId.replace('img', '');
         const ph = document.getElementById('ph' + num);
         if (ph) ph.style.display = 'none';
-
-        img.style.opacity = '0';
-        img.style.transform = 'scale(0.95)';
-        img.style.transition = 'all 0.5s ease';
-        setTimeout(() => {
-            img.style.opacity = '1';
-            img.style.transform = 'scale(1)';
-        }, 50);
     };
     reader.readAsDataURL(file);
 }
 
-// ── VIDEO UPLOAD ─────────────────────────────────────────────
 function loadVideo(input, videoElId, placeholderId) {
     const file = input.files[0];
     if (!file) return;
-
     const videoEl = document.getElementById(videoElId);
     const placeholder = document.getElementById(placeholderId);
     const url = URL.createObjectURL(file);
-
     videoEl.src = url;
     videoEl.classList.remove('hidden');
-    videoEl.style.opacity = '0';
-    videoEl.style.transition = 'opacity 0.5s ease';
-
+    videoEl.style.opacity = '1';
     const label = placeholder.querySelector('.video-upload-label');
     if (label) label.style.display = 'none';
-
-    videoEl.onloadeddata = () => {
-        videoEl.style.opacity = '1';
-    };
     videoEl.load();
 }
-
-// ── MUSIC PLAYER (Fixed: musik.mp3) ──────────────────────────
-// Global function called by the overlay in index.html
-// ── MUSIC PLAYER (UI Sync & Controls) ──────────────────────────
-(function initMusicUI() {
-    var audio = document.getElementById('bgMusic');
-    var sub = document.getElementById('musicSub');
-    if (!audio) return;
-
-    // Event listeners to keep UI in sync
-    audio.addEventListener('play', function () {
-        setMusicUI(true);
-        if (sub) sub.textContent = '♪ Sedang diputar';
-    });
-    audio.addEventListener('pause', function () {
-        setMusicUI(false);
-        if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
-    });
-
-    audio.addEventListener('error', function () {
-        if (sub) {
-            var code = audio.error ? audio.error.code : 'unknown';
-            sub.textContent = '⚠️ Audio Error (' + code + ') - Cek musik.mp3';
-        }
-    });
-
-    // Sync UI on load
-    if (!audio.paused) {
-        setMusicUI(true);
-        if (sub) sub.textContent = '♪ Sedang diputar';
-    }
-})();
 
 // ── SUPABASE CONFIGURATION (Ganti dengan data Anda) ──────────
 const SUPABASE_URL = 'Isi_Project_URL_Anda_Di_Sini';
@@ -334,110 +333,51 @@ function renderMediaCard(item, isNew) {
     }
 }
 
-async function handlePhotoUpload(event) {
+// ── SHARED GALLERY UPLOAD ───────────────────────────────────
+function handlePhotoUpload(event) {
     const file = event.target.files[0];
-    if (!file || !supabase) {
-        if (!supabase) alert("Hubungkan Supabase dulu ya (Langkah 2)!");
-        return;
-    }
+    if (!file) return;
 
     const uploadBtn = document.querySelector('.upload-btn span');
-    const originalText = uploadBtn.textContent;
-    uploadBtn.textContent = '⌛ Mengupload ke Awan...';
+    const originalText = uploadBtn ? uploadBtn.textContent : '';
+    if (uploadBtn) uploadBtn.textContent = '⌛ Memproses...';
 
-    // 1. Upload ke Storage Bucket 'photos'
-    const fileName = `${Date.now()}_${file.name}`;
-    const { data: storageData, error: storageError } = await supabase.storage
-        .from('photos')
-        .upload(fileName, file);
-
-    if (storageError) {
-        console.error("Upload storage gagal:", storageError);
-        alert("Upload gagal: " + storageError.message);
-        uploadBtn.textContent = originalText;
-        return;
-    }
-
-    // 2. Dapatkan URL Public
-    const { data: publicUrlData } = supabase.storage
-        .from('photos')
-        .getPublicUrl(fileName);
-
-    const publicUrl = publicUrlData.publicUrl;
-
-    // 3. Simpan Metadata ke Tabel 'memories'
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-
-    const { data: dbData, error: dbError } = await supabase
-        .from('memories')
-        .insert([{
-            url: publicUrl,
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+        // Tampilkan Preview Lokal Dulu (Agar Langsung Muncul)
+        const item = {
+            url: e.target.result,
             type: file.type,
-            date: dateStr
-        }])
-        .select();
+            date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+        };
+        renderMediaCard(item, true);
 
-    if (dbError) {
-        console.error("Gagal simpan ke database:", dbError);
-        alert("Database error: " + dbError.message);
-    } else {
-        renderMediaCard(dbData[0], true);
-    }
+        // Jika Supabase Aktif, Upload ke Cloud
+        if (supabase && !SUPABASE_URL.includes('Isi_Project')) {
+            try {
+                const fileName = `${Date.now()}_${file.name}`;
+                const { error: storageError } = await supabase.storage.from('photos').upload(fileName, file);
+                if (!storageError) {
+                    const { data: publicUrlData } = supabase.storage.from('photos').getPublicUrl(fileName);
+                    await supabase.from('memories').insert([{ url: publicUrlData.publicUrl, type: file.type, date: item.date }]);
+                }
+            } catch (err) {
+                console.warn("Cloud upload skip:", err);
+            }
+        }
 
-    uploadBtn.textContent = originalText;
+        if (uploadBtn) uploadBtn.textContent = '➕ Tambah Foto / Video';
+    };
+    reader.readAsDataURL(file);
 }
 
-// Cek koneksi & muat data saat awal
-if (supabase) {
-    loadSavedMedia();
-}
-
-// Fungsi bantu hapus galeri (hanya untuk database di sini)
-async function clearSharedMemories() {
-    if (!supabase) return;
-    if (!confirm('Hapus selamanya semua kenangan dari cloud?')) return;
-
-    const { error } = await supabase
-        .from('memories')
-        .delete()
-        .neq('id', 0); // Hapus semua
-
-    if (error) alert("Gagal menghapus: " + error.message);
-    else {
+function clearSharedMemories() {
+    if (confirm('Bersihkan galeri ini?')) {
         document.getElementById('sharedGalleryGrid').innerHTML = '';
-        alert('Cloud Gallery dibersihkan! ✨');
+        if (supabase) {
+            supabase.from('memories').delete().neq('id', 0).then(() => { });
+        }
     }
-}
-
-function toggleMusic() {
-    var audio = document.getElementById('bgMusic');
-    var sub = document.getElementById('musicSub');
-    if (!audio) return;
-
-    if (audio.paused) {
-        // Retry playing
-        audio.play().then(function () {
-            if (sub) sub.textContent = '♪ Sedang diputar';
-        }).catch(function () {
-            // Fallback reload if stuck
-            audio.load();
-            audio.play().catch(function () { });
-        });
-    } else {
-        audio.pause();
-        if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
-    }
-}
-
-function toggleYtMusic() { toggleMusic(); }
-function loadMusic() { }
-
-function setMusicUI(playing) {
-    var btn = document.getElementById('playBtn');
-    var icon = document.getElementById('musicNoteIcon');
-    if (btn) btn.textContent = playing ? '⏸' : '▶';
-    if (icon) icon.style.animation = playing ? 'pulse 1.5s ease infinite' : 'none';
 }
 
 // ── FIREWORKS (Dark Overlay Mode) ────────────────────────────
