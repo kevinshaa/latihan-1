@@ -1,566 +1,222 @@
 /* ============================================================
-   BIRTHDAY WEBSITE - JavaScript (Animations + Interactions)
+   BIRTHDAY WEBSITE - Master Script (Restored & Robust)
    ============================================================ */
 
-// ── FLOATING HEARTS ─────────────────────────────────────────
-(function initFloatingHearts() {
-    const container = document.getElementById('floating-hearts');
-    const emojis = ['💕', '❤️', '🌹', '🌸', '💖', '✨', '💫', '🌺'];
+// ── 1. INITIALIZATION & GLOBAL SCOPE ────────────────────────
+window.addEventListener('load', () => {
+    initFloatingHearts();
+    initParticles();
+    initCountdown();
+    initLoveDuration();
+    initScrollAnimations();
+    initHeroSparkle();
 
-    function createHeart() {
-        if (container.children.length > (window.innerWidth < 768 ? 15 : 30)) return;
-        const el = document.createElement('span');
-        el.className = 'heart-float';
-        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        el.style.left = Math.random() * 100 + 'vw';
-        el.style.fontSize = (0.8 + Math.random() * 1.4) + 'rem';
-        el.style.animationDuration = (8 + Math.random() * 10) + 's';
-        el.style.animationDelay = (Math.random() * 5) + 's';
-        container.appendChild(el);
-        setTimeout(() => el.remove(), 20000);
-    }
+    // Check Supabase after 1s
+    setTimeout(() => { if (typeof loadSavedMedia === 'function') loadSavedMedia(); }, 1000);
+});
 
-    for (let i = 0; i < 8; i++) setTimeout(createHeart, i * 500);
-    setInterval(createHeart, 2200);
-})();
-
-// ── PARTICLE CANVAS ──────────────────────────────────────────
-(function initParticles() {
-    const canvas = document.getElementById('particles-canvas');
-    const ctx = canvas.getContext('2d');
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    let particles = [];
-
-    class Particle {
-        constructor() { this.reset(); }
-        reset() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.vx = (Math.random() - 0.5) * 0.4;
-            this.vy = -Math.random() * 0.5 - 0.2;
-            this.size = Math.random() * 2.5 + 0.5;
-            this.alpha = Math.random() * 0.4 + 0.1;
-            this.color = ['#e91e63', '#f48fb1', '#f9c74f', '#ce93d8', '#ff8fa3'][Math.floor(Math.random() * 5)];
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.alpha -= 0.0008;
-            if (this.alpha <= 0 || this.y < -10) this.reset();
-        }
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-    }
-
-    const particleCount = window.innerWidth < 768 ? 35 : 80;
-    for (let i = 0; i < particleCount; i++) particles.push(new Particle());
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => { p.update(); p.draw(); });
-        requestAnimationFrame(animate);
-    }
-    animate();
-
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    });
-})();
-
-// ── COUNTDOWN TIMER ──────────────────────────────────────────
-(function initCountdown() {
-    // SET YOUR BIRTHDAY DATE HERE — Risma Galuh: 14 Februari 2008
-    const BIRTH_MONTH = 1; // Februari (0-indexed)
-    const BIRTH_DAY = 14;
-
-    function updateCountdown() {
-        const now = new Date();
-        let target = new Date(now.getFullYear(), BIRTH_MONTH, BIRTH_DAY);
-        if (now > target) target = new Date(now.getFullYear() + 1, BIRTH_MONTH, BIRTH_DAY);
-
-        const diff = target - now;
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        document.getElementById('days').textContent = String(days).padStart(3, '0');
-        document.getElementById('hours').textContent = String(hours).padStart(2, '0');
-        document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
-        document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
-    }
-
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-
-    // Hitung usia: Risma Galuh lahir 14 Februari 2008
-    const birthYear = 2008;
-    const now = new Date();
-    const hasBirthdayPassedThisYear = (
-        now.getMonth() > BIRTH_MONTH ||
-        (now.getMonth() === BIRTH_MONTH && now.getDate() >= BIRTH_DAY)
-    );
-    const age = now.getFullYear() - birthYear - (hasBirthdayPassedThisYear ? 0 : 1);
-    document.getElementById('ageNumber').textContent = age;
-})();
-
-
-// ── LOVE DURATION COUNTER ─────────────────────────────────────
-(function initLoveDuration() {
-    // SET YOUR ANNIVERSARY DATE HERE (Year, Month-1, Day)
-    // 21 September 2025 = new Date(2025, 8, 21)
-    const anniversaryDate = new Date(2025, 8, 21);
-
-    function updateLoveDuration() {
-        const now = new Date();
-
-        let years = now.getFullYear() - anniversaryDate.getFullYear();
-        let months = now.getMonth() - anniversaryDate.getMonth();
-        let days = now.getDate() - anniversaryDate.getDate();
-
-        // Adjust if days are negative (borrow from previous month)
-        if (days < 0) {
-            months--;
-            const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-            days += prevMonth.getDate();
-        }
-        if (months < 0) {
-            years--;
-            months += 12;
-        }
-
-        document.getElementById('loveYears').textContent = years;
-        document.getElementById('loveMonths').textContent = months;
-        document.getElementById('loveDays').textContent = days;
-    }
-
-    updateLoveDuration();
-    setInterval(updateLoveDuration, 1000 * 60); // update per minute
-})();
-
-// ── SCROLL ANIMATIONS (Intersection Observer) ─────────────────
-(function initScrollAnimations() {
-    const sections = document.querySelectorAll('section');
-
-    sections.forEach(section => {
-        section.classList.add('fade-in-section');
-    });
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-            }
-        });
-    }, { threshold: 0.1 });
-
-    sections.forEach(section => observer.observe(section));
-})();
-
-// ── MUSIC PLAYER (Fixed: musik.mp3) ──────────────────────────
+// ── 2. MUSIC PLAYER LOGIC ───────────────────────────────────
 window.toggleMusic = function () {
-    var audio = document.getElementById('bgMusic');
-    var sub = document.getElementById('musicSub');
+    const audio = document.getElementById('bgMusic');
+    const sub = document.getElementById('musicSub');
     if (!audio) return;
 
     if (audio.paused) {
-        audio.play().then(function () {
-            if (sub) sub.textContent = '♪ Sedang diputar';
-        }).catch(function () {
+        audio.play().then(() => {
+            window.setMusicUI(true);
+        }).catch(() => {
             audio.load();
-            audio.play().catch(function () { });
+            audio.play().then(() => window.setMusicUI(true)).catch(() => { });
         });
     } else {
         audio.pause();
-        if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
+        window.setMusicUI(false);
     }
 };
 
 window.setMusicUI = function (playing) {
-    var btn = document.getElementById('playBtn');
-    var icon = document.getElementById('musicNoteIcon');
+    const btn = document.getElementById('playBtn');
+    const icon = document.getElementById('musicNoteIcon');
+    const sub = document.getElementById('musicSub');
     if (btn) btn.textContent = playing ? '⏸' : '▶';
-    if (icon) {
-        icon.style.animation = playing ? 'music-note-beat 2s ease-in-out infinite' : 'none';
-    }
+    if (sub) sub.textContent = playing ? '♪ Sedang diputar' : '♪ Berhenti (Klik ▶)';
+    if (icon) icon.style.animation = playing ? 'music-note-beat 2s ease-in-out infinite' : 'none';
 };
 
-(function initMusicUI() {
-    var audio = document.getElementById('bgMusic');
-    var sub = document.getElementById('musicSub');
-    if (!audio) return;
-
-    audio.addEventListener('play', () => {
-        window.setMusicUI(true);
-        if (sub) sub.textContent = '♪ Sedang diputar';
-    });
-    audio.addEventListener('pause', () => {
-        window.setMusicUI(false);
-        if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
-    });
-    audio.addEventListener('error', () => {
-        if (sub) sub.textContent = '⚠️ Musik Error - Cek file musik.mp3';
-    });
-
-    if (!audio.paused) {
-        window.setMusicUI(true);
-        if (sub) sub.textContent = '♪ Sedang diputar';
-    }
-})();
-
-// ── PHOTO/VIDEO UPLOAD (Local Logic) ──────────────────────────
-function loadPhoto(input, imgId) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = document.getElementById(imgId);
-        img.src = e.target.result;
-        img.classList.remove('hidden');
-        const num = imgId.replace('img', '');
-        const ph = document.getElementById('ph' + num);
-        if (ph) ph.style.display = 'none';
-    };
-    reader.readAsDataURL(file);
-}
-
-function loadVideo(input, videoElId, placeholderId) {
-    const file = input.files[0];
-    if (!file) return;
-    const videoEl = document.getElementById(videoElId);
-    const placeholder = document.getElementById(placeholderId);
-    const url = URL.createObjectURL(file);
-    videoEl.src = url;
-    videoEl.classList.remove('hidden');
-    videoEl.style.opacity = '1';
-    const label = placeholder.querySelector('.video-upload-label');
-    if (label) label.style.display = 'none';
-    videoEl.load();
-}
-
-// ── SUPABASE CONFIGURATION ──────────────────────────────────
-// PENTING: Supabase baru aktif jika URL diawali dengan 'http'
-const SUPABASE_URL = 'https://lasbelwjsatzfaczinks.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_f8OCZCVbS31zv1Zhg51vfg_OdwjqsVu';
-
-let supabase = null;
-try {
-    if (window.supabase) {
-        // Cek apakah key valid (Supabase key biasanya sangat panjang)
-        if (SUPABASE_URL.startsWith('http')) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        }
-    }
-} catch (e) {
-    console.warn("Supabase load skipped (normal if keys not ready):", e);
-}
-
-// ── GLOBAL GALLERY (Cloud Sync with Supabase) ────────────────
-async function loadSavedMedia() {
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-
-    if (!supabase || SUPABASE_URL.includes('Isi_Project')) {
-        console.warn("Supabase belum terhubung. Selesaikan Langkah 2 di Walkthrough.");
-        const grid = document.getElementById('sharedGalleryGrid');
-        if (grid) grid.innerHTML = '<div class="empty-gallery-msg">☁️ Selesaikan Langkah 2 (API Key) untuk mengaktifkan galeri global...</div>';
-        return;
-    }
-
-    // Mark as active
-    if (statusDot) statusDot.classList.add('active');
-    if (statusText) statusText.textContent = 'Cloud: Tersambung (Mulus & Global)';
-
-    const { data, error } = await supabase
-        .from('memories')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error("Gagal memuat data:", error);
-        if (statusText) statusText.textContent = 'Cloud: Error Database (Cek Tabel)';
-        return;
-    }
-
-    const grid = document.getElementById('sharedGalleryGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    if (data.length === 0) {
-        grid.innerHTML = '<div class="empty-gallery-msg">Belum ada kenangan di galeri. Ayo tambahkan foto/video pertama kalian! 🌹</div>';
-    } else {
-        data.forEach(item => {
-            renderMediaCard(item, false);
-        });
-    }
-}
-
-function renderMediaCard(item, isNew) {
-    const grid = document.getElementById('sharedGalleryGrid');
-    const card = document.createElement('div');
-    card.className = 'shared-photo-card';
-
-    // Gunakan URL langsung dari database
-    const isVideo = item.type.startsWith('video/');
-    const mediaHtml = isVideo
-        ? `<video src="${item.url}" class="shared-photo-img" controls></video>`
-        : `<img src="${item.url}" class="shared-photo-img" alt="Memori">`;
-
-    card.innerHTML = `
-        ${mediaHtml}
-        <div class="shared-photo-info">
-            Kenangan abadi! 💖
-            <span class="shared-photo-date">${item.date}</span>
-        </div>
-    `;
-
-    grid.prepend(card);
-    if (isNew) {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        setTimeout(() => {
-            card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        }, 50);
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-}
-
-// ── SHARED GALLERY UPLOAD ───────────────────────────────────
-function handlePhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const uploadBtn = document.querySelector('.upload-btn span');
-    const originalText = uploadBtn ? uploadBtn.textContent : '';
-    if (uploadBtn) uploadBtn.textContent = '⌛ Memproses...';
-
-    const reader = new FileReader();
-    reader.onload = async function (e) {
-        // Tampilkan Preview Lokal Dulu (Agar Langsung Muncul)
-        const item = {
-            url: e.target.result,
-            type: file.type,
-            date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-        };
-        renderMediaCard(item, true);
-
-        // Jika Supabase Aktif, Upload ke Cloud
-        if (supabase && !SUPABASE_URL.includes('Isi_Project')) {
-            try {
-                const fileName = `${Date.now()}_${file.name}`;
-                const { error: storageError } = await supabase.storage.from('photos').upload(fileName, file);
-                if (!storageError) {
-                    const { data: publicUrlData } = supabase.storage.from('photos').getPublicUrl(fileName);
-                    await supabase.from('memories').insert([{ url: publicUrlData.publicUrl, type: file.type, date: item.date }]);
-                }
-            } catch (err) {
-                console.warn("Cloud upload skip:", err);
-            }
-        }
-
-        if (uploadBtn) uploadBtn.textContent = '➕ Tambah Foto / Video';
-    };
-    reader.readAsDataURL(file);
-}
-
-function clearSharedMemories() {
-    if (confirm('Bersihkan galeri ini?')) {
-        document.getElementById('sharedGalleryGrid').innerHTML = '';
-        if (supabase) {
-            supabase.from('memories').delete().neq('id', 0).then(() => { });
-        }
-    }
-}
-
-// ── FIREWORKS (Dark Overlay Mode) ────────────────────────────
+// ── 3. FIREWORKS LOGIC ──────────────────────────────────────
 let fwActive = false;
-let fwAnimFrame = null;
 let fwParticles = [];
-let fwBurstTimer = null;
+let fwAnimFrame = null;
+let fwBurstTimer = [];
 
 const FW_PALETTES = [
-    ['#f9c74f', '#ffdf80', '#ffd700'],   // gold
-    ['#f48fb1', '#ff6b95', '#e91e63'],   // rose
-    ['#ce93d8', '#ba68c8', '#9c27b0'],   // purple
-    ['#80deea', '#26c6da', '#00acc1'],   // teal
-    ['#ffffff', '#f9c74f', '#f48fb1'],   // white-gold-pink
+    ['#f9c74f', '#ffdf80', '#ffd700'], ['#f48fb1', '#ff6b95', '#e91e63'],
+    ['#ce93d8', '#ba68c8', '#9c27b0'], ['#80deea', '#26c6da', '#00acc1']
 ];
 
 window.launchFireworks = function () {
-    var overlay = document.getElementById('fw-overlay');
-    var canvas = document.getElementById('fw-canvas');
+    const overlay = document.getElementById('fw-overlay');
+    const canvas = document.getElementById('fw-canvas');
     if (!overlay || !canvas) return;
 
-    closeFwOverlay(true);
+    window.closeFwOverlay(true);
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
     overlay.classList.add('fw-active');
     fwActive = true;
     fwParticles = [];
 
-    var ctx = canvas.getContext('2d');
-    renderFw(ctx, canvas);
+    const ctx = canvas.getContext('2d');
+    const render = () => {
+        if (!fwActive) return;
+        ctx.fillStyle = 'rgba(4, 0, 15, 0.15)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        fwParticles = fwParticles.filter(p => {
+            p.vx *= 0.97; p.vy = p.vy * 0.97 + 0.1;
+            p.x += p.vx; p.y += p.vy; p.alpha -= 0.01;
+            if (p.alpha <= 0) return false;
+            ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+            return true;
+        });
+        fwAnimFrame = requestAnimationFrame(render);
+    };
+    render();
 
-    var schedule = [0, 500, 850, 1200, 1600, 2000, 2350, 2700, 3100, 3500, 3900, 4300, 4700, 5100];
-    schedule.forEach(function (delay) {
-        fwBurstTimer = setTimeout(function () {
+    [0, 500, 1000, 1500, 2000, 2500, 3000].forEach(delay => {
+        fwBurstTimer.push(setTimeout(() => {
             if (!fwActive) return;
-            var n = 2 + Math.floor(Math.random() * 3);
-            for (var i = 0; i < n; i++) spawnBurst(canvas);
-        }, delay);
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height * 0.6;
+            const color = FW_PALETTES[Math.floor(Math.random() * FW_PALETTES.length)][0];
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 6 + 2;
+                fwParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, alpha: 1, color });
+            }
+        }, delay));
     });
 };
 
-function spawnBurst(canvas) {
-    var cx = canvas.width;
-    var cy = canvas.height;
-
-    // Safe zones: avoid center 30% x 30% area (where text sits)
-    var safeZones = [
-        { x: cx * (0.05 + Math.random() * 0.22), y: cy * (0.05 + Math.random() * 0.40) },
-        { x: cx * (0.73 + Math.random() * 0.22), y: cy * (0.05 + Math.random() * 0.40) },
-        { x: cx * (0.05 + Math.random() * 0.22), y: cy * (0.55 + Math.random() * 0.35) },
-        { x: cx * (0.73 + Math.random() * 0.22), y: cy * (0.55 + Math.random() * 0.35) },
-        { x: cx * (0.25 + Math.random() * 0.50), y: cy * (0.72 + Math.random() * 0.22) },
-    ];
-    var pos = safeZones[Math.floor(Math.random() * safeZones.length)];
-    var palette = FW_PALETTES[Math.floor(Math.random() * FW_PALETTES.length)];
-    var count = 100 + Math.floor(Math.random() * 60);
-    var spread = 0.85 + Math.random() * 0.3; // burst fullness
-
-    for (var i = 0; i < count; i++) {
-        var angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.15;
-        var speed = (3 + Math.random() * 6) * spread;
-        var color = palette[Math.floor(Math.random() * palette.length)];
-        var isStar = Math.random() < 0.2; // 20% are "glitter" sparks
-
-        fwParticles.push({
-            x: pos.x, y: pos.y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            alpha: 1,
-            decay: 0.008 + Math.random() * 0.009, // slower fade = smoother
-            radius: isStar ? (1 + Math.random() * 1.5) : (2.5 + Math.random() * 2),
-            color: color,
-            glow: isStar ? 4 : 14,
-            drag: 0.96 + Math.random() * 0.02,
-        });
-    }
-}
-
-function renderFw(ctx, canvas) {
-    if (!fwActive) return;
-
-    // Soft dark trail — lower alpha = longer, more visible trails
-    ctx.fillStyle = 'rgba(4, 0, 15, 0.14)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    var alive = [];
-    for (var i = 0; i < fwParticles.length; i++) {
-        var p = fwParticles[i];
-        p.vx *= p.drag;
-        p.vy = p.vy * p.drag + 0.09;  // gentle gravity
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= p.decay;
-        if (p.alpha <= 0) continue;
-
-        ctx.save();
-        ctx.globalAlpha = p.alpha * p.alpha; // quadratic fade = smoother tail
-        ctx.shadowBlur = p.glow;
-        ctx.shadowColor = p.color;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, Math.max(0.5, p.radius * p.alpha), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        alive.push(p);
-    }
-    fwParticles = alive;
-
-    fwAnimFrame = requestAnimationFrame(function () { renderFw(ctx, canvas); });
-}
-
-window.closeFwOverlay = function (silent) {
-    var overlay = document.getElementById('fw-overlay');
-    var canvas = document.getElementById('fw-canvas');
+window.closeFwOverlay = function (silent = false) {
+    const overlay = document.getElementById('fw-overlay');
     if (overlay) overlay.classList.remove('fw-active');
     fwActive = false;
     fwParticles = [];
     if (fwAnimFrame) cancelAnimationFrame(fwAnimFrame);
-    if (fwBurstTimer) clearTimeout(fwBurstTimer);
-    if (canvas) {
-        var ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
+    fwBurstTimer.forEach(t => clearTimeout(t));
+    fwBurstTimer = [];
 };
 
-window.addEventListener('resize', function () {
-    if (!fwActive) return;
-    var canvas = document.getElementById('fw-canvas');
-    if (canvas) { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-});
-
-// Launch a small burst on page load (existing behavior)
-window.addEventListener('load', function () {
-    setTimeout(function () {
-        // Only tiny auto-burst on load, not full overlay
-        const canvas = document.getElementById('particles-canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        for (let i = 0; i < 3; i++) {
-            setTimeout(function () { _smallBurst(canvas, ctx); }, i * 500);
-        }
-    }, 1200);
-});
-
-function _smallBurst(canvas, ctx) {
-    const cx = Math.random() * canvas.width;
-    const cy = Math.random() * canvas.height * 0.5;
-    const colors = ['#e91e63', '#f9c74f', '#ce93d8', '#ff8fa3', '#ffffff'];
-    for (let i = 0; i < 50; i++) {
-        const angle = (Math.PI * 2 / 50) * i;
-        const speed = 2 + Math.random() * 4;
-        let x = cx, y = cy, alpha = 1;
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        (function anim() {
-            alpha -= 0.03;
-            if (alpha <= 0) return;
-            x += Math.cos(angle) * speed * alpha;
-            y += Math.sin(angle) * speed * alpha + 0.15;
-            ctx.save(); ctx.globalAlpha = alpha;
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
-            ctx.restore();
-            requestAnimationFrame(anim);
-        })();
-    }
+// ── 4. ANNIVERSARY & COUNTDOWN ──────────────────────────────
+function initLoveDuration() {
+    const start = new Date(2025, 8, 21); // 21 Sept 2025
+    const update = () => {
+        const now = new Date();
+        let y = now.getFullYear() - start.getFullYear();
+        let m = now.getMonth() - start.getMonth();
+        let d = now.getDate() - start.getDate();
+        if (d < 0) { m--; d += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+        if (m < 0) { y--; m += 12; }
+        document.getElementById('loveYears').textContent = Math.max(0, y);
+        document.getElementById('loveMonths').textContent = Math.max(0, m);
+        document.getElementById('loveDays').textContent = Math.max(0, d);
+    };
+    update(); setInterval(update, 60000);
 }
 
+function initCountdown() {
+    const update = () => {
+        const target = new Date(new Date().getFullYear(), 1, 14); // 14 Feb
+        if (new Date() > target) target.setFullYear(target.getFullYear() + 1);
+        const diff = target - new Date();
+        document.getElementById('days').textContent = String(Math.floor(diff / 864e5)).padStart(3, '0');
+        document.getElementById('hours').textContent = String(Math.floor((diff % 864e5) / 36e5)).padStart(2, '0');
+        document.getElementById('minutes').textContent = String(Math.floor((diff % 36e5) / 6e4)).padStart(2, '0');
+        document.getElementById('seconds').textContent = String(Math.floor((diff % 6e4) / 1e3)).padStart(2, '0');
+        document.getElementById('ageNumber').textContent = new Date().getFullYear() - 2008;
+    };
+    update(); setInterval(update, 1000);
+}
 
+// ── 5. GALLERY & UPLOAD ─────────────────────────────────────
+window.handlePhotoUpload = function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+        const item = { url: ev.target.result, type: file.type, date: new Date().toLocaleDateString('id-ID') };
+        renderMediaCard(item, true);
+        if (typeof supabase !== 'undefined' && supabase) {
+            const name = `${Date.now()}_${file.name}`;
+            await supabase.storage.from('photos').upload(name, file);
+            const { data } = supabase.storage.from('photos').getPublicUrl(name);
+            await supabase.from('memories').insert([{ url: data.publicUrl, type: file.type, date: item.date }]);
+        }
+    };
+    reader.readAsDataURL(file);
+};
 
-// ── HERO name customization ──────────────────────────────────
-// Auto-twinkling sparkle on hero title
-(function heroSparkle() {
-    const heroTitle = document.querySelector('.hero-title');
-    if (!heroTitle) return;
-    heroTitle.style.transition = 'text-shadow 1.5s ease';
+function renderMediaCard(item, isNew) {
+    const grid = document.getElementById('sharedGalleryGrid');
+    if (!grid) return;
+    const div = document.createElement('div');
+    div.className = 'shared-photo-card';
+    div.innerHTML = `<img src="${item.url}" class="shared-photo-img"><div class="shared-photo-info">Kenangan! 💖<span class="shared-photo-date">${item.date}</span></div>`;
+    grid.prepend(div);
+}
+
+window.loadPhoto = function (input, imgId) {
+    const f = input.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = e => {
+        const img = document.getElementById(imgId); img.src = e.target.result; img.classList.remove('hidden');
+        const ph = document.getElementById('ph' + imgId.replace('img', '')); if (ph) ph.style.display = 'none';
+    };
+    r.readAsDataURL(f);
+}
+
+window.loadVideo = function (i, v, p) {
+    const f = i.files[0]; if (!f) return;
+    const el = document.getElementById(v); el.src = URL.createObjectURL(f); el.classList.remove('hidden');
+    document.getElementById(p).querySelector('.video-upload-label').style.display = 'none';
+}
+
+// ── 6. ANIMATIONS & UI ──────────────────────────────────────
+function initFloatingHearts() {
+    const c = document.getElementById('floating-hearts');
     setInterval(() => {
-        heroTitle.style.textShadow = `0 0 ${20 + Math.random() * 30}px rgba(233,30,99,${0.3 + Math.random() * 0.4})`;
+        if (c.children.length > 20) return;
+        const e = document.createElement('span'); e.className = 'heart-float';
+        e.textContent = ['❤️', '💖', '🌹', '✨'][Math.floor(Math.random() * 4)];
+        e.style.left = Math.random() * 100 + 'vw'; e.style.animationDuration = (5 + Math.random() * 5) + 's';
+        c.appendChild(e); setTimeout(() => e.remove(), 10000);
     }, 1500);
-})();
+}
+
+function initParticles() {
+    const cv = document.getElementById('particles-canvas'); const ctx = cv.getContext('2d');
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    let parts = Array.from({ length: 50 }, () => ({ x: Math.random() * cv.width, y: Math.random() * cv.height, v: Math.random() * 0.5 + 0.2 }));
+    const anim = () => {
+        ctx.clearRect(0, 0, cv.width, cv.height); ctx.fillStyle = 'white'; ctx.globalAlpha = 0.3;
+        parts.forEach(p => { p.y -= p.v; if (p.y < 0) p.y = cv.height; ctx.beginPath(); ctx.arc(p.x, p.y, 1, 0, 7); ctx.fill(); });
+        requestAnimationFrame(anim);
+    };
+    anim();
+}
+
+function initScrollAnimations() {
+    const obs = new IntersectionObserver(ents => ents.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }), { threshold: 0.1 });
+    document.querySelectorAll('section').forEach(s => { s.classList.add('fade-in-section'); obs.observe(s); });
+}
+
+function initHeroSparkle() {
+    const h = document.querySelector('.hero-title'); if (!h) return;
+    setInterval(() => h.style.textShadow = `0 0 ${20 + Math.random() * 20}px rgba(233,30,99,0.5)`, 1000);
+}
+
+// ── 7. SUPABASE CONFIG ──────────────────────────────────────
+const SUPABASE_URL = 'https://lasbelwjsatzfaczinks.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_f8OCZCVbS31zv1Zhg51vfg_OdwjqsVu';
+var supabase = (typeof window.supabase !== 'undefined') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
