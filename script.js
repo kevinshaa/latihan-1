@@ -169,7 +169,7 @@
 })();
 
 // ── MUSIC PLAYER (Fixed: musik.mp3) ──────────────────────────
-function toggleMusic() {
+window.toggleMusic = function () {
     var audio = document.getElementById('bgMusic');
     var sub = document.getElementById('musicSub');
     if (!audio) return;
@@ -185,14 +185,16 @@ function toggleMusic() {
         audio.pause();
         if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
     }
-}
+};
 
-function setMusicUI(playing) {
+window.setMusicUI = function (playing) {
     var btn = document.getElementById('playBtn');
     var icon = document.getElementById('musicNoteIcon');
     if (btn) btn.textContent = playing ? '⏸' : '▶';
-    if (icon) icon.style.animation = playing ? 'pulse 1.5s ease infinite' : 'none';
-}
+    if (icon) {
+        icon.style.animation = playing ? 'music-note-beat 2s ease-in-out infinite' : 'none';
+    }
+};
 
 (function initMusicUI() {
     var audio = document.getElementById('bgMusic');
@@ -200,11 +202,11 @@ function setMusicUI(playing) {
     if (!audio) return;
 
     audio.addEventListener('play', () => {
-        setMusicUI(true);
+        window.setMusicUI(true);
         if (sub) sub.textContent = '♪ Sedang diputar';
     });
     audio.addEventListener('pause', () => {
-        setMusicUI(false);
+        window.setMusicUI(false);
         if (sub) sub.textContent = '♪ Berhenti (Klik ▶)';
     });
     audio.addEventListener('error', () => {
@@ -212,7 +214,7 @@ function setMusicUI(playing) {
     });
 
     if (!audio.paused) {
-        setMusicUI(true);
+        window.setMusicUI(true);
         if (sub) sub.textContent = '♪ Sedang diputar';
     }
 })();
@@ -248,17 +250,21 @@ function loadVideo(input, videoElId, placeholderId) {
     videoEl.load();
 }
 
-// ── SUPABASE CONFIGURATION (Ganti dengan data Anda) ──────────
+// ── SUPABASE CONFIGURATION ──────────────────────────────────
+// PENTING: Supabase baru aktif jika URL diawali dengan 'http'
 const SUPABASE_URL = 'https://lasbelwjsatzfaczinks.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_f8OCZCVbS31zv1Zhg51vfg_OdwjqsVu';
 
 let supabase = null;
 try {
-    if (window.supabase && SUPABASE_URL.startsWith('http')) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    if (window.supabase) {
+        // Cek apakah key valid (Supabase key biasanya sangat panjang)
+        if (SUPABASE_URL.startsWith('http')) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
     }
 } catch (e) {
-    console.error("Supabase initialization failed:", e);
+    console.warn("Supabase load skipped (normal if keys not ready):", e);
 }
 
 // ── GLOBAL GALLERY (Cloud Sync with Supabase) ────────────────
@@ -394,14 +400,12 @@ const FW_PALETTES = [
     ['#ffffff', '#f9c74f', '#f48fb1'],   // white-gold-pink
 ];
 
-function launchFireworks() {
+window.launchFireworks = function () {
     var overlay = document.getElementById('fw-overlay');
     var canvas = document.getElementById('fw-canvas');
     if (!overlay || !canvas) return;
 
-    // Stop any previous session cleanly
     closeFwOverlay(true);
-
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -412,17 +416,15 @@ function launchFireworks() {
     var ctx = canvas.getContext('2d');
     renderFw(ctx, canvas);
 
-    // Schedule bursts: 0ms, 500ms, 900ms, 1300ms … up to ~8s
     var schedule = [0, 500, 850, 1200, 1600, 2000, 2350, 2700, 3100, 3500, 3900, 4300, 4700, 5100];
     schedule.forEach(function (delay) {
         fwBurstTimer = setTimeout(function () {
             if (!fwActive) return;
-            // Fire 2-4 bursts simultaneously
             var n = 2 + Math.floor(Math.random() * 3);
             for (var i = 0; i < n; i++) spawnBurst(canvas);
         }, delay);
     });
-}
+};
 
 function spawnBurst(canvas) {
     var cx = canvas.width;
@@ -494,11 +496,10 @@ function renderFw(ctx, canvas) {
     fwAnimFrame = requestAnimationFrame(function () { renderFw(ctx, canvas); });
 }
 
-function closeFwOverlay(silent) {
+window.closeFwOverlay = function (silent) {
     var overlay = document.getElementById('fw-overlay');
     var canvas = document.getElementById('fw-canvas');
-    if (overlay && !silent) overlay.classList.remove('fw-active');
-    if (overlay && silent) overlay.classList.remove('fw-active');
+    if (overlay) overlay.classList.remove('fw-active');
     fwActive = false;
     fwParticles = [];
     if (fwAnimFrame) cancelAnimationFrame(fwAnimFrame);
@@ -507,7 +508,7 @@ function closeFwOverlay(silent) {
         var ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-}
+};
 
 window.addEventListener('resize', function () {
     if (!fwActive) return;
