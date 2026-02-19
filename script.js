@@ -249,39 +249,72 @@ function loadVideo(input, videoElId, placeholderId) {
     }
 })();
 
-// ── COLLABORATIVE GALLERY (Multi-Device Upload) ────────────────
-function handlePhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+// ── SUPABASE CONFIGURATION (Ganti dengan data Anda) ──────────
+const SUPABASE_URL = 'Isi_Project_URL_Anda_Di_Sini';
+const SUPABASE_KEY = 'Isi_Anon_Key_Anda_Di_Sini';
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-    // Show loading state or feedback
-    const uploadBtn = document.querySelector('.upload-btn span');
-    const originalText = uploadBtn.textContent;
-    uploadBtn.textContent = '⌛ Memproses...';
+// ── GLOBAL GALLERY (Cloud Sync with Supabase) ────────────────
+async function loadSavedMedia() {
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
+    if (!supabase || SUPABASE_URL.includes('Isi_Project')) {
+        console.warn("Supabase belum terhubung. Selesaikan Langkah 2 di Walkthrough.");
         const grid = document.getElementById('sharedGalleryGrid');
-        const card = document.createElement('div');
-        card.className = 'shared-photo-card';
+        if (grid) grid.innerHTML = '<div class="empty-gallery-msg">☁️ Selesaikan Langkah 2 (API Key) untuk mengaktifkan galeri global...</div>';
+        return;
+    }
 
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    // Mark as active
+    if (statusDot) statusDot.classList.add('active');
+    if (statusText) statusText.textContent = 'Cloud: Tersambung (Mulus & Global)';
 
-        card.innerHTML = `
-            <img src="${e.target.result}" class="shared-photo-img" alt="Memori">
-            <div class="shared-photo-info">
-                Momen baru ditambahkan! 🌹
-                <span class="shared-photo-date">${dateStr}</span>
-            </div>
-        `;
+    const { data, error } = await supabase
+        .from('memories')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        grid.prepend(card);
+    if (error) {
+        console.error("Gagal memuat data:", error);
+        if (statusText) statusText.textContent = 'Cloud: Error Database (Cek Tabel)';
+        return;
+    }
 
-        // Reset button
-        uploadBtn.textContent = originalText;
+    const grid = document.getElementById('sharedGalleryGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
 
-        // Animation
+    if (data.length === 0) {
+        grid.innerHTML = '<div class="empty-gallery-msg">Belum ada kenangan di galeri. Ayo tambahkan foto/video pertama kalian! 🌹</div>';
+    } else {
+        data.forEach(item => {
+            renderMediaCard(item, false);
+        });
+    }
+}
+
+function renderMediaCard(item, isNew) {
+    const grid = document.getElementById('sharedGalleryGrid');
+    const card = document.createElement('div');
+    card.className = 'shared-photo-card';
+
+    // Gunakan URL langsung dari database
+    const isVideo = item.type.startsWith('video/');
+    const mediaHtml = isVideo
+        ? `<video src="${item.url}" class="shared-photo-img" controls></video>`
+        : `<img src="${item.url}" class="shared-photo-img" alt="Memori">`;
+
+    card.innerHTML = `
+        ${mediaHtml}
+        <div class="shared-photo-info">
+            Kenangan abadi! 💖
+            <span class="shared-photo-date">${item.date}</span>
+        </div>
+    `;
+
+    grid.prepend(card);
+    if (isNew) {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
         setTimeout(() => {
@@ -289,11 +322,84 @@ function handlePhotoUpload(event) {
             card.style.opacity = '1';
             card.style.transform = 'translateY(0)';
         }, 50);
-
-        // Scroll to the new photo
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    };
-    reader.readAsDataURL(file);
+    }
+}
+
+async function handlePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file || !supabase) {
+        if (!supabase) alert("Hubungkan Supabase dulu ya (Langkah 2)!");
+        return;
+    }
+
+    const uploadBtn = document.querySelector('.upload-btn span');
+    const originalText = uploadBtn.textContent;
+    uploadBtn.textContent = '⌛ Mengupload ke Awan...';
+
+    // 1. Upload ke Storage Bucket 'photos'
+    const fileName = `${Date.now()}_${file.name}`;
+    const { data: storageData, error: storageError } = await supabase.storage
+        .from('photos')
+        .upload(fileName, file);
+
+    if (storageError) {
+        console.error("Upload storage gagal:", storageError);
+        alert("Upload gagal: " + storageError.message);
+        uploadBtn.textContent = originalText;
+        return;
+    }
+
+    // 2. Dapatkan URL Public
+    const { data: publicUrlData } = supabase.storage
+        .from('photos')
+        .getPublicUrl(fileName);
+
+    const publicUrl = publicUrlData.publicUrl;
+
+    // 3. Simpan Metadata ke Tabel 'memories'
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const { data: dbData, error: dbError } = await supabase
+        .from('memories')
+        .insert([{
+            url: publicUrl,
+            type: file.type,
+            date: dateStr
+        }])
+        .select();
+
+    if (dbError) {
+        console.error("Gagal simpan ke database:", dbError);
+        alert("Database error: " + dbError.message);
+    } else {
+        renderMediaCard(dbData[0], true);
+    }
+
+    uploadBtn.textContent = originalText;
+}
+
+// Cek koneksi & muat data saat awal
+if (supabase) {
+    loadSavedMedia();
+}
+
+// Fungsi bantu hapus galeri (hanya untuk database di sini)
+async function clearSharedMemories() {
+    if (!supabase) return;
+    if (!confirm('Hapus selamanya semua kenangan dari cloud?')) return;
+
+    const { error } = await supabase
+        .from('memories')
+        .delete()
+        .neq('id', 0); // Hapus semua
+
+    if (error) alert("Gagal menghapus: " + error.message);
+    else {
+        document.getElementById('sharedGalleryGrid').innerHTML = '';
+        alert('Cloud Gallery dibersihkan! ✨');
+    }
 }
 
 function toggleMusic() {

@@ -503,14 +503,19 @@
             <div class="section-header">
                 <div class="section-tag">📸 Memori Bersama</div>
                 <h2 class="section-title">Tambahkan <span class="gradient-text">Kenangan Kita</span></h2>
-                <p class="section-desc">Klik tombol di bawah untuk menambahkan foto baru dari HP-mu!</p>
+                <p class="section-desc">Klik tombol di bawah untuk menambah foto atau video langsung dari HP-mu!</p>
             </div>
 
             <div class="upload-area">
                 <label for="photoUpload" class="upload-btn">
-                    <span>➕ Tambah Foto Baru</span>
-                    <input type="file" id="photoUpload" accept="image/*" onchange="handlePhotoUpload(event)">
+                    <span>➕ Tambah Foto / Video</span>
+                    <input type="file" id="photoUpload" accept="image/*,video/*" onchange="handlePhotoUpload(event)">
                 </label>
+                <button class="clear-btn" onclick="clearSharedMemories()">🗑️ Hapus Galeri</button>
+                <div class="sync-status" id="syncStatus">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Cloud: Menunggu Kunci (Langkah 2)</span>
+                </div>
             </div>
 
             <div class="shared-gallery-grid" id="sharedGalleryGrid">
@@ -561,6 +566,8 @@
     <button class="fireworks-btn" id="fireworksBtn" onclick="launchFireworks()"
         title="Klik untuk kembang api!">🎆</button>
 
+    <!-- ========== SUPABASE SDK ========== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
 
