@@ -249,8 +249,8 @@ function loadVideo(input, videoElId, placeholderId) {
 }
 
 // ── SUPABASE CONFIGURATION (Ganti dengan data Anda) ──────────
-const SUPABASE_URL = 'Isi_Project_URL_Anda_Di_Sini';
-const SUPABASE_KEY = 'Isi_Anon_Key_Anda_Di_Sini';
+const SUPABASE_URL = 'https://lasbelwjsatzfaczinks.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_f8OCZCVbS31zv1Zhg51vfg_OdwjqsVu';
 
 let supabase = null;
 try {
