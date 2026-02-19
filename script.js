@@ -252,7 +252,15 @@ function loadVideo(input, videoElId, placeholderId) {
 // ── SUPABASE CONFIGURATION (Ganti dengan data Anda) ──────────
 const SUPABASE_URL = 'Isi_Project_URL_Anda_Di_Sini';
 const SUPABASE_KEY = 'Isi_Anon_Key_Anda_Di_Sini';
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+let supabase = null;
+try {
+    if (window.supabase && SUPABASE_URL.startsWith('http')) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+} catch (e) {
+    console.error("Supabase initialization failed:", e);
+}
 
 // ── GLOBAL GALLERY (Cloud Sync with Supabase) ────────────────
 async function loadSavedMedia() {
