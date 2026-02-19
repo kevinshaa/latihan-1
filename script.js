@@ -1,37 +1,29 @@
 /* ============================================================
-   BIRTHDAY WEBSITE - Master Script (ES5 Defensive Version)
+   BIRTHDAY WEBSITE - Master Script (Eternal & Robust Version)
    ============================================================ */
 
-// ── 1. CORE INTERACTIVE FUNCTIONS (Always Defined First) ─────
+// ── 1. CORE INTERACTIVE FUNCTIONS ───────────────────────────
 window.toggleMusic = function () {
     try {
         var audio = document.getElementById('bgMusic');
-        var sub = document.getElementById('musicSub');
         if (!audio) return;
-
         if (audio.paused) {
-            audio.play().then(function () {
-                window.setMusicUI(true);
-            }).catch(function () {
-                audio.load();
-                audio.play().then(function () { window.setMusicUI(true); }).catch(function () { });
+            audio.play().then(function () { window.setMusicUI(true); }).catch(function () {
+                audio.load(); audio.play().then(function () { window.setMusicUI(true); }).catch(function () { });
             });
         } else {
-            audio.pause();
-            window.setMusicUI(false);
+            audio.pause(); window.setMusicUI(false);
         }
-    } catch (e) { console.error("toggleMusic error:", e); }
+    } catch (e) { }
 };
 
 window.setMusicUI = function (playing) {
-    try {
-        var btn = document.getElementById('playBtn');
-        var icon = document.getElementById('musicNoteIcon');
-        var sub = document.getElementById('musicSub');
-        if (btn) btn.textContent = playing ? '⏸' : '▶';
-        if (sub) sub.textContent = playing ? '♪ Sedang diputar' : '♪ Berhenti (Klik ▶)';
-        if (icon) icon.style.animation = playing ? 'music-note-beat 2s ease-in-out infinite' : 'none';
-    } catch (e) { }
+    var btn = document.getElementById('playBtn');
+    var icon = document.getElementById('musicNoteIcon');
+    var sub = document.getElementById('musicSub');
+    if (btn) btn.textContent = playing ? '⏸' : '▶';
+    if (sub) sub.textContent = playing ? '♪ Sedang diputar' : '♪ Berhenti (Klik ▶)';
+    if (icon) icon.style.animation = playing ? 'music-note-beat 2s ease-in-out infinite' : 'none';
 };
 
 var fwActive = false;
@@ -90,20 +82,19 @@ window.launchFireworks = function () {
                 }, delay));
             })(schedule[j]);
         }
-    } catch (e) { console.error("fireworks error:", e); }
+    } catch (e) { }
 };
 
-window.closeFwOverlay = function (silent) {
+window.closeFwOverlay = function () {
     var overlay = document.getElementById('fw-overlay');
     if (overlay) overlay.classList.remove('fw-active');
-    fwActive = false;
-    fwParticles = [];
+    fwActive = false; fwParticles = [];
     if (fwAnimFrame) cancelAnimationFrame(fwAnimFrame);
     for (var i = 0; i < fwBurstTimer.length; i++) clearTimeout(fwBurstTimer[i]);
     fwBurstTimer = [];
 };
 
-// ── 2. INITIALIZATION (Wrapped in Try-Catch) ──────────────────
+// ── 2. INITIALIZATION ──────────────────────────────────────
 window.addEventListener('load', function () {
     try { initFloatingHearts(); } catch (e) { }
     try { initParticles(); } catch (e) { }
@@ -120,7 +111,34 @@ window.addEventListener('load', function () {
     }, 1500);
 });
 
-// ── 3. ANNIVERSARY & COUNTDOWN ──────────────────────────────
+// ── 3. PERSISTENCE HELPERS (LocalStorage Backup) ────────────
+function saveLocal(id, url) {
+    try { localStorage.setItem('eternal_' + id, url); } catch (e) { }
+}
+function getLocal(id) {
+    return localStorage.getItem('eternal_' + id);
+}
+
+function restoreSlot(id, url) {
+    try {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.src = url;
+        el.classList.remove('hidden');
+        var phId = (id.indexOf('videoEl') === 0) ? 'videoPlaceholder' + id.replace('videoEl', '') : 'ph' + id.replace('img', '');
+        var ph = document.getElementById(phId);
+        if (ph) {
+            if (id.indexOf('videoEl') === 0) {
+                var lb = ph.querySelector('.video-upload-label');
+                if (lb) lb.style.display = 'none';
+            } else {
+                ph.style.display = 'none';
+            }
+        }
+    } catch (e) { }
+}
+
+// ── 4. ANNIVERSARY & COUNTDOWN ──────────────────────────────
 function initLoveDuration() {
     var start = new Date(2025, 8, 21); // 21 Sept 2025
     var update = function () {
@@ -160,7 +178,7 @@ function initCountdown() {
     update(); setInterval(update, 1000);
 }
 
-// ── 4. GALLERY & UPLOAD ─────────────────────────────────────
+// ── 5. GALLERY & UPLOAD ─────────────────────────────────────
 window.handlePhotoUpload = function (e) {
     try {
         var file = e.target.files[0];
@@ -173,31 +191,94 @@ window.handlePhotoUpload = function (e) {
             if (window.supabase) {
                 var supabase = window.supabase;
                 var fileName = "feed_" + Date.now() + "_" + file.name;
-                supabase.storage.from('photos').upload(fileName, file).then(function (res) {
-                    if (res.error) { if (statusText) statusText.textContent = '❌ Cloud Error'; return; }
-                    var urlRes = supabase.storage.from('photos').getPublicUrl(fileName);
+                supabase.storage.from('photo').upload(fileName, file).then(function (res) {
+                    if (res.error) {
+                        if (statusText) statusText.textContent = '❌ Upload Error: ' + res.error.message;
+                        return;
+                    }
+                    var urlRes = supabase.storage.from('photo').getPublicUrl(fileName);
                     supabase.from('memories').insert([{ url: urlRes.data.publicUrl, type: file.type, date: item.date }]).then(function (dbRes) {
-                        if (dbRes.error) { if (statusText) statusText.textContent = '❌ Cloud DB Error'; }
+                        if (dbRes.error) { if (statusText) statusText.textContent = '❌ DB Error: ' + dbRes.error.message; }
                         else { if (statusText) statusText.textContent = '✅ Kenangan tersimpan!'; }
                     });
-                }).catch(function () { if (statusText) statusText.textContent = '❌ Cloud Failure'; });
+                }).catch(function (err) { if (statusText) statusText.textContent = '❌ Error Koneksi'; });
             }
         };
         reader.readAsDataURL(file);
-    } catch (err) { console.error(err); }
+    } catch (err) { }
 };
+
+window.loadPhoto = function (input, imgId) {
+    try {
+        var f = input.files[0]; if (!f) return;
+        var r = new FileReader();
+        var st = document.getElementById('statusText');
+        r.onload = function (e) {
+            restoreSlot(imgId, e.target.result);
+            saveLocal(imgId, e.target.result); // Backup Lokal
+            if (window.supabase) {
+                if (st) st.textContent = 'Cloud: Mengamankan foto...';
+                var fileName = "slot_" + imgId + "_" + Date.now() + "_" + f.name;
+                window.supabase.storage.from('photo').upload(fileName, f).then(function (res) {
+                    if (res.error) return;
+                    var urlRes = window.supabase.storage.from('photo').getPublicUrl(fileName);
+                    window.supabase.from('memories').insert([{
+                        url: urlRes.data.publicUrl, type: f.type, slot_id: imgId, date: new Date().toLocaleDateString('id-ID')
+                    }]).then(function (db) {
+                        if (db.error && db.error.message.includes('slot_id')) alert('⚠️ PENTING: Anda belum menjalankan perintah SQL ALTER TABLE di Supabase. Cek panduan!');
+                        else if (st) st.textContent = 'Cloud: Foto abadi! ✨';
+                    });
+                });
+            }
+        };
+        r.readAsDataURL(f);
+    } catch (err) { }
+}
+
+window.loadVideo = function (i, v, p) {
+    try {
+        var f = i.files[0]; if (!f) return;
+        var r = new FileReader();
+        var st = document.getElementById('statusText');
+        r.onload = function (e) {
+            restoreSlot(v, e.target.result);
+            saveLocal(v, e.target.result); // Backup Lokal
+            if (window.supabase) {
+                if (st) st.textContent = 'Cloud: Mengamankan video...';
+                var fileName = "slot_" + v + "_" + Date.now() + "_" + f.name;
+                window.supabase.storage.from('photo').upload(fileName, f).then(function (res) {
+                    if (res.error) return;
+                    var urlRes = window.supabase.storage.from('photo').getPublicUrl(fileName);
+                    window.supabase.from('memories').insert([{
+                        url: urlRes.data.publicUrl, type: f.type, slot_id: v, date: new Date().toLocaleDateString('id-ID')
+                    }]).then(function (db) {
+                        if (db.error && db.error.message.includes('slot_id')) alert('⚠️ PENTING: Anda belum menjalankan perintah SQL ALTER TABLE di Supabase. Cek panduan!');
+                        else if (st) st.textContent = 'Cloud: Video abadi! ✨';
+                    });
+                });
+            }
+        };
+        r.readAsDataURL(f);
+    } catch (e) { }
+}
 
 window.loadSavedMedia = function () {
     try {
         var statusDot = document.getElementById('statusDot');
         var statusText = document.getElementById('statusText');
         var grid = document.getElementById('sharedGalleryGrid');
-        if (!window.supabase) return;
-        var supabase = window.supabase;
 
-        supabase.from('memories').select('*').order('created_at', { ascending: false }).then(function (res) {
+        // 1. Restore dari LocalStorage (Sangat Cepat)
+        var slots = ['img1', 'img2', 'img3', 'img4', 'img5', 'videoEl1', 'videoEl2', 'videoEl3'];
+        for (var k = 0; k < slots.length; k++) {
+            var cached = getLocal(slots[k]);
+            if (cached) restoreSlot(slots[k], cached);
+        }
+
+        if (!window.supabase) return;
+        window.supabase.from('memories').select('*').order('created_at', { ascending: false }).then(function (res) {
             if (res.error) {
-                if (statusText) statusText.textContent = '❌ Error Cloud: ' + res.error.message;
+                if (statusText) statusText.textContent = '❌ Cloud Error: ' + res.error.message;
                 return;
             }
             if (statusDot) statusDot.classList.add('active');
@@ -205,30 +286,22 @@ window.loadSavedMedia = function () {
 
             if (grid) grid.innerHTML = '';
             var data = res.data;
+            if (!data) data = []; // Safety check
             var slotsFound = {};
-
             for (var i = 0; i < data.length; i++) {
                 var item = data[i];
-                // Jika ini adalah slot galeri utama (slot_id)
                 if (item.slot_id) {
-                    if (!slotsFound[item.slot_id]) { // Ambil yang paling baru saja
-                        var img = document.getElementById(item.slot_id);
-                        if (img) {
-                            img.src = item.url;
-                            img.classList.remove('hidden');
-                            var ph = document.getElementById('ph' + item.slot_id.replace('img', ''));
-                            if (ph) ph.style.display = 'none';
-                        }
+                    if (!slotsFound[item.slot_id]) {
+                        restoreSlot(item.slot_id, item.url);
+                        saveLocal(item.slot_id, item.url);
                         slotsFound[item.slot_id] = true;
                     }
                 } else {
-                    // Masuk ke feed bersama
                     renderMediaCard(item, false);
                 }
             }
-
             if (grid && grid.children.length === 0) {
-                grid.innerHTML = '<div class="empty-gallery-msg">Belum ada kenangan di feed. Ayo tambah kenangan kalian! 🌹</div>';
+                grid.innerHTML = '<div class="empty-gallery-msg">Belum ada kenangan di feed.</div>';
             }
         });
     } catch (e) { }
@@ -240,62 +313,12 @@ function renderMediaCard(item, isNew) {
     var div = document.createElement('div');
     div.className = 'shared-photo-card';
     var isVideo = item.type && item.type.indexOf('video/') === 0;
-    var mediaHtml = isVideo
-        ? '<video src="' + item.url + '" class="shared-photo-img" controls></video>'
-        : '<img src="' + item.url + '" class="shared-photo-img" alt="Memori">';
-    div.innerHTML = mediaHtml + '<div class="shared-photo-info">Kenangan abadi! 💖<span class="shared-photo-date">' + (item.date || 'Baru saja') + '</span></div>';
-    grid.insertBefore(div, grid.firstChild);
+    var mediaHtml = isVideo ? '<video src="' + item.url + '" class="shared-photo-img" controls></video>' : '<img src="' + item.url + '" class="shared-photo-img">';
+    div.innerHTML = mediaHtml + '<div class="shared-photo-info">Kenangan! 💖<span class="shared-photo-date">' + (item.date || 'Baru') + '</span></div>';
+    if (isNew) grid.insertBefore(div, grid.firstChild); else grid.appendChild(div);
 }
 
-// ── 5. OTHER PLAIN FUNCTIONS ────────────────────────────────
-window.loadPhoto = function (input, imgId) {
-    try {
-        var f = input.files[0]; if (!f) return;
-        var r = new FileReader();
-        var statusText = document.getElementById('statusText');
-
-        r.onload = function (e) {
-            // Preview lokal langsung
-            var img = document.getElementById(imgId);
-            if (img) {
-                img.src = e.target.result;
-                img.classList.remove('hidden');
-            }
-            var ph = document.getElementById('ph' + imgId.replace('img', ''));
-            if (ph) ph.style.display = 'none';
-
-            // Upload ke Cloud sebagai "Eternal Slot"
-            if (window.supabase) {
-                if (statusText) statusText.textContent = 'Cloud: Mengamankan foto abadi...';
-                var supabase = window.supabase;
-                var fileName = "slot_" + imgId + "_" + Date.now() + "_" + f.name;
-
-                supabase.storage.from('photos').upload(fileName, f).then(function (res) {
-                    if (res.error) return;
-                    var urlRes = supabase.storage.from('photos').getPublicUrl(fileName);
-                    supabase.from('memories').insert([{
-                        url: urlRes.data.publicUrl,
-                        type: f.type,
-                        slot_id: imgId, // Identifier slot
-                        date: new Date().toLocaleDateString('id-ID')
-                    }]).then(function (dbRes) {
-                        if (!dbRes.error && statusText) statusText.textContent = 'Cloud: Foto slot ' + imgId + ' abadi! ✨';
-                    });
-                });
-            }
-        };
-        r.readAsDataURL(f);
-    } catch (err) { console.error(err); }
-}
-
-window.loadVideo = function (i, v, p) {
-    var f = i.files[0]; if (!f) return;
-    var el = document.getElementById(v); el.src = URL.createObjectURL(f); el.classList.remove('hidden');
-    var ph = document.getElementById(p); if (ph) {
-        var lb = ph.querySelector('.video-upload-label'); if (lb) lb.style.display = 'none';
-    }
-}
-
+// ── 6. ANIMATIONS & UI ──────────────────────────────────────
 function initFloatingHearts() {
     var c = document.getElementById('floating-hearts');
     setInterval(function () {
@@ -339,7 +362,7 @@ function initHeroSparkle() {
     setInterval(function () { h.style.textShadow = '0 0 ' + (20 + Math.random() * 20) + 'px rgba(233,30,99,0.5)'; }, 1000);
 }
 
-// ── 6. SUPABASE CONFIG ──────────────────────────────────────
+// ── 7. SUPABASE CONFIG ──────────────────────────────────────
 var SUPABASE_URL = 'https://lasbelwjsatzfaczinks.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_f8OCZCVbS31zv1Zhg51vfg_OdwjqsVu';
 if (typeof window.supabase !== 'undefined') {
