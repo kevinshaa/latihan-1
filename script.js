@@ -172,16 +172,13 @@ window.handlePhotoUpload = function (e) {
             var statusText = document.getElementById('statusText');
             if (window.supabase) {
                 var supabase = window.supabase;
-                var fileName = Date.now() + "_" + file.name;
+                var fileName = "feed_" + Date.now() + "_" + file.name;
                 supabase.storage.from('photos').upload(fileName, file).then(function (res) {
-                    if (res.error) {
-                        if (statusText) statusText.textContent = '❌ Cloud Error (Check Bucket)';
-                        return;
-                    }
+                    if (res.error) { if (statusText) statusText.textContent = '❌ Cloud Error'; return; }
                     var urlRes = supabase.storage.from('photos').getPublicUrl(fileName);
                     supabase.from('memories').insert([{ url: urlRes.data.publicUrl, type: file.type, date: item.date }]).then(function (dbRes) {
                         if (dbRes.error) { if (statusText) statusText.textContent = '❌ Cloud DB Error'; }
-                        else { if (statusText) statusText.textContent = '✅ Tersimpan permanen!'; }
+                        else { if (statusText) statusText.textContent = '✅ Kenangan tersimpan!'; }
                     });
                 }).catch(function () { if (statusText) statusText.textContent = '❌ Cloud Failure'; });
             }
@@ -205,14 +202,33 @@ window.loadSavedMedia = function () {
             }
             if (statusDot) statusDot.classList.add('active');
             if (statusText) statusText.textContent = 'Cloud: Sinkron Berhasil ✨';
-            if (grid) {
-                grid.innerHTML = '';
-                var data = res.data;
-                if (data.length === 0) {
-                    grid.innerHTML = '<div class="empty-gallery-msg">Belum ada kenangan. Ayo tambah foto/video pertama kalian! 🌹</div>';
+
+            if (grid) grid.innerHTML = '';
+            var data = res.data;
+            var slotsFound = {};
+
+            for (var i = 0; i < data.length; i++) {
+                var item = data[i];
+                // Jika ini adalah slot galeri utama (slot_id)
+                if (item.slot_id) {
+                    if (!slotsFound[item.slot_id]) { // Ambil yang paling baru saja
+                        var img = document.getElementById(item.slot_id);
+                        if (img) {
+                            img.src = item.url;
+                            img.classList.remove('hidden');
+                            var ph = document.getElementById('ph' + item.slot_id.replace('img', ''));
+                            if (ph) ph.style.display = 'none';
+                        }
+                        slotsFound[item.slot_id] = true;
+                    }
                 } else {
-                    for (var i = 0; i < data.length; i++) renderMediaCard(data[i], false);
+                    // Masuk ke feed bersama
+                    renderMediaCard(item, false);
                 }
+            }
+
+            if (grid && grid.children.length === 0) {
+                grid.innerHTML = '<div class="empty-gallery-msg">Belum ada kenangan di feed. Ayo tambah kenangan kalian! 🌹</div>';
             }
         });
     } catch (e) { }
@@ -233,13 +249,43 @@ function renderMediaCard(item, isNew) {
 
 // ── 5. OTHER PLAIN FUNCTIONS ────────────────────────────────
 window.loadPhoto = function (input, imgId) {
-    var f = input.files[0]; if (!f) return;
-    var r = new FileReader();
-    r.onload = function (e) {
-        var img = document.getElementById(imgId); img.src = e.target.result; img.classList.remove('hidden');
-        var ph = document.getElementById('ph' + imgId.replace('img', '')); if (ph) ph.style.display = 'none';
-    };
-    r.readAsDataURL(f);
+    try {
+        var f = input.files[0]; if (!f) return;
+        var r = new FileReader();
+        var statusText = document.getElementById('statusText');
+
+        r.onload = function (e) {
+            // Preview lokal langsung
+            var img = document.getElementById(imgId);
+            if (img) {
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+            }
+            var ph = document.getElementById('ph' + imgId.replace('img', ''));
+            if (ph) ph.style.display = 'none';
+
+            // Upload ke Cloud sebagai "Eternal Slot"
+            if (window.supabase) {
+                if (statusText) statusText.textContent = 'Cloud: Mengamankan foto abadi...';
+                var supabase = window.supabase;
+                var fileName = "slot_" + imgId + "_" + Date.now() + "_" + f.name;
+
+                supabase.storage.from('photos').upload(fileName, f).then(function (res) {
+                    if (res.error) return;
+                    var urlRes = supabase.storage.from('photos').getPublicUrl(fileName);
+                    supabase.from('memories').insert([{
+                        url: urlRes.data.publicUrl,
+                        type: f.type,
+                        slot_id: imgId, // Identifier slot
+                        date: new Date().toLocaleDateString('id-ID')
+                    }]).then(function (dbRes) {
+                        if (!dbRes.error && statusText) statusText.textContent = 'Cloud: Foto slot ' + imgId + ' abadi! ✨';
+                    });
+                });
+            }
+        };
+        r.readAsDataURL(f);
+    } catch (err) { console.error(err); }
 }
 
 window.loadVideo = function (i, v, p) {
