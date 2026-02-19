@@ -11,8 +11,14 @@ window.addEventListener('load', () => {
     initScrollAnimations();
     initHeroSparkle();
 
-    // Check Supabase after 1s
-    setTimeout(() => { if (typeof loadSavedMedia === 'function') loadSavedMedia(); }, 1000);
+    // Status awal (menunggu koneksi)
+    const statusText = document.getElementById('statusText');
+    if (statusText) statusText.textContent = 'Cloud: Sedang menghubungkan...';
+
+    // Coba muat data dari cloud setelah jeda singkat
+    setTimeout(() => {
+        if (typeof window.loadSavedMedia === 'function') window.loadSavedMedia();
+    }, 1500);
 });
 
 // ── 2. MUSIC PLAYER LOGIC ───────────────────────────────────
@@ -147,14 +153,73 @@ window.handlePhotoUpload = function (e) {
     reader.onload = async (ev) => {
         const item = { url: ev.target.result, type: file.type, date: new Date().toLocaleDateString('id-ID') };
         renderMediaCard(item, true);
-        if (typeof supabase !== 'undefined' && supabase) {
-            const name = `${Date.now()}_${file.name}`;
-            await supabase.storage.from('photos').upload(name, file);
-            const { data } = supabase.storage.from('photos').getPublicUrl(name);
-            await supabase.from('memories').insert([{ url: data.publicUrl, type: file.type, date: item.date }]);
+        const statusText = document.getElementById('statusText'); // Get statusText here
+        if (supabase) {
+            try {
+                const name = `${Date.now()}_${file.name}`;
+                const { error: storageError } = await supabase.storage.from('photos').upload(name, file);
+
+                if (storageError) {
+                    if (statusText) statusText.textContent = '❌ Cloud Error: Cek Bucket "photos" (Harus Public)';
+                    console.error("Storage Error:", storageError);
+                    return;
+                }
+
+                const { data: publicUrlData } = supabase.storage.from('photos').getPublicUrl(name);
+                const { error: dbError } = await supabase.from('memories').insert([{
+                    url: publicUrlData.publicUrl,
+                    type: file.type,
+                    date: item.date
+                }]);
+
+                if (dbError) {
+                    if (statusText) statusText.textContent = '❌ Cloud Error: Cek Tabel "memories" di SQL';
+                    console.error("Database Error:", dbError);
+                } else {
+                    if (statusText) statusText.textContent = '✅ Berhasil Tersimpan di Cloud!';
+                }
+            } catch (err) {
+                if (statusText) statusText.textContent = '❌ Cloud Sync Gagal (Cek Koneksi)';
+                console.warn("Cloud Sync Exception:", err);
+            }
         }
     };
     reader.readAsDataURL(file);
+};
+
+window.loadSavedMedia = async function () {
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const grid = document.getElementById('sharedGalleryGrid');
+
+    if (!supabase) {
+        if (statusText) statusText.textContent = 'Cloud: Menunggu Supabase...';
+        return;
+    }
+
+    const { data, error } = await supabase.from('memories').select('*').order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Fetch Error:", error);
+        if (statusText) {
+            statusText.textContent = (error.message.includes('not found'))
+                ? '❌ Error: Tabel "memories" Belum Dibuat'
+                : '❌ Cloud Error: ' + error.message;
+        }
+        return;
+    }
+
+    if (statusDot) statusDot.classList.add('active');
+    if (statusText) statusText.textContent = 'Cloud: Sinkron Berhasil ✨';
+
+    if (grid) {
+        grid.innerHTML = '';
+        if (data.length === 0) {
+            grid.innerHTML = '<div class="empty-gallery-msg">Belum ada kenangan. Ayo tambah foto/video pertama kalian! 🌹</div>';
+        } else {
+            data.forEach(item => renderMediaCard(item, false));
+        }
+    }
 };
 
 function renderMediaCard(item, isNew) {
@@ -162,9 +227,33 @@ function renderMediaCard(item, isNew) {
     if (!grid) return;
     const div = document.createElement('div');
     div.className = 'shared-photo-card';
-    div.innerHTML = `<img src="${item.url}" class="shared-photo-img"><div class="shared-photo-info">Kenangan! 💖<span class="shared-photo-date">${item.date}</span></div>`;
+
+    const isVideo = item.type && item.type.startsWith('video/');
+    const mediaHtml = isVideo
+        ? `<video src="${item.url}" class="shared-photo-img" controls></video>`
+        : `<img src="${item.url}" class="shared-photo-img" alt="Memori">`;
+
+    div.innerHTML = `
+        ${mediaHtml}
+        <div class="shared-photo-info">
+            Kenangan abadi! 💖
+            <span class="shared-photo-date">${item.date || 'Baru saja'}</span>
+        </div>
+    `;
     grid.prepend(div);
 }
+
+window.clearSharedMemories = function () {
+    if (confirm('Bersihkan galeri ini? Semua foto di cloud akan dihapus.')) {
+        document.getElementById('sharedGalleryGrid').innerHTML = '';
+        if (supabase) {
+            supabase.from('memories').delete().neq('id', 0).then(() => {
+                const st = document.getElementById('statusText');
+                if (st) st.textContent = 'Cloud: Galeri telah dibersihkan';
+            });
+        }
+    }
+};
 
 window.loadPhoto = function (input, imgId) {
     const f = input.files[0]; if (!f) return;
@@ -219,4 +308,16 @@ function initHeroSparkle() {
 // ── 7. SUPABASE CONFIG ──────────────────────────────────────
 const SUPABASE_URL = 'https://lasbelwjsatzfaczinks.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_f8OCZCVbS31zv1Zhg51vfg_OdwjqsVu';
-var supabase = (typeof window.supabase !== 'undefined') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+let supabase = null;
+
+// Initialize Supabase safely
+function initSupabase() {
+    try {
+        if (typeof window.supabase !== 'undefined') {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+    } catch (e) {
+        console.error("Supabase Init Error:", e);
+    }
+}
+initSupabase();
